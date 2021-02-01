@@ -28,12 +28,193 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/tjfoc/gmsm/sm2"
 	"math/big"
+	"reflect"
 	"time"
 
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/utils"
 	"github.com/pkg/errors"
 )
+
+type ICertificate interface {
+	IsCA () bool
+	Raw () []byte
+	ExpiresAt() time.Time
+	Subject () pkix.Name
+	Equal(other ICertificate) bool
+	Verify (opts interface{}) ([][]ICertificate,error)
+	SerialNumber () *big.Int
+	SKI () ([]byte,error)
+	CheckCRLSignature(crl *pkix.CertificateList) error
+	Get() interface{}
+}
+
+type Certificate struct {
+	cert interface{}
+}
+
+func (c *Certificate) IsCA() bool {
+	if c.cert == nil {
+		return false
+	}
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).IsCA
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).IsCA
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c *Certificate) Raw() []byte {
+	if c.cert == nil {
+		return nil
+	}
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).Raw
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).Raw
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c *Certificate) ExpiresAt () time.Time {
+
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).NotAfter
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).NotAfter
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c *Certificate) Subject () pkix.Name {
+
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).Subject
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).Subject
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c *Certificate) Equal(other ICertificate) bool {
+	return bytes.Equal(c.Raw(), other.Raw())
+}
+
+func (c *Certificate) Verify (opts interface{}) ([][]ICertificate,error) {
+	if !common.IsSM2Certificate(c.Raw(),false) {
+		chains, err := c.cert.(*x509.Certificate).Verify(opts.(x509.VerifyOptions))
+		if err != nil {
+			return nil, err
+		}
+		var chain = make([][]ICertificate, len(chains))
+
+		for i, certs := range chains {
+			var tmp = make([]ICertificate, len(certs))
+			for j, cert := range certs {
+				tmp[j] = NewCertificate(cert)
+			}
+			chain[i] = tmp
+		}
+		return chain, nil
+	}else{
+		chains,err := common.ParseX509Certificate2Sm2(c.cert.(*x509.Certificate)).Verify(opts.(sm2.VerifyOptions))
+		if err != nil {
+			return nil,err
+		}
+		var chain = make([][]ICertificate,len(chains))
+
+		for i,certs := range chains {
+			var tmp = make([]ICertificate,len(certs))
+			for j,cert := range certs {
+				tmp[j] = NewCertificate(cert)
+			}
+			chain[i] = tmp
+		}
+		return chain,nil
+	}
+}
+
+func (c *Certificate) SerialNumber () *big.Int {
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).SerialNumber
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).SerialNumber
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c * Certificate) SKI () ([]byte,error){
+	var SKI []byte
+
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		cert :=  c.cert.(*x509.Certificate)
+		for _, ext := range cert.Extensions {
+			// Subject Key Identifier is identified by the following ASN.1 tag
+			// subjectKeyIdentifier (2 5 29 14) (see https://tools.ietf.org/html/rfc3280.html)
+			if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 14}) {
+				_, err := asn1.Unmarshal(ext.Value, &SKI)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to unmarshal Subject Key Identifier")
+				}
+				return SKI, nil
+			}
+		}
+	case *sm2.Certificate:
+		cert :=  c.cert.(*sm2.Certificate)
+		for _, ext := range cert.Extensions {
+			// Subject Key Identifier is identified by the following ASN.1 tag
+			// subjectKeyIdentifier (2 5 29 14) (see https://tools.ietf.org/html/rfc3280.html)
+			if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 14}) {
+				_, err := asn1.Unmarshal(ext.Value, &SKI)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to unmarshal Subject Key Identifier")
+				}
+				return SKI, nil
+			}
+		}
+		default:
+		panic("UnSupport certificate type")
+	}
+
+
+	return nil, errors.New("subjectKeyIdentifier not found in certificate")
+}
+
+func (c *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
+	switch c.cert.(type) {
+	case *x509.Certificate:
+		return c.cert.(*x509.Certificate).CheckCRLSignature(crl)
+	case *sm2.Certificate:
+		return c.cert.(*sm2.Certificate).CheckCRLSignature(crl)
+	default:
+		panic("UnSupport certificate type")
+	}
+}
+
+func (c *Certificate) Get () interface{} {
+	return c.cert
+}
+
+
+func NewCertificate (cert interface{}) ICertificate{
+	return &Certificate{
+		cert: cert,
+	}
+}
 
 type validity struct {
 	NotBefore, NotAfter time.Time

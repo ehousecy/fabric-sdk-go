@@ -28,6 +28,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"strings"
 
@@ -150,7 +151,11 @@ func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporar
 
 	key, err := factory.PEMtoPrivateKey(keyBuff, nil)
 	if err != nil {
-		return nil, errors.WithMessage(err, fmt.Sprintf("Failed parsing private key from %s", keyFile))
+		block, _ := pem.Decode(keyBuff)
+		key, err = sm2.ParsePKCS8UnecryptedPrivateKey(block.Bytes)
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("Failed parsing private key from %s", keyFile))
+		}
 	}
 	switch key.(type) {
 	case *ecdsa.PrivateKey:
@@ -161,6 +166,16 @@ func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporar
 		sk, err := myCSP.KeyImport(priv, factory.GetECDSAPrivateKeyImportOpts(temporary))
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to import ECDSA private key for '%s'", keyFile))
+		}
+		return sk, nil
+	case *sm2.PrivateKey:
+		priv, err := sm2.MarshalSm2PrivateKey(key.(*sm2.PrivateKey),nil)
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to convert sm2 private key for '%s'", keyFile))
+		}
+		sk, err := myCSP.KeyImport(priv, factory.GetSM2PrivateKeyImportOpts(temporary))
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to import sm2 private key for '%s'", keyFile))
 		}
 		return sk, nil
 	default:

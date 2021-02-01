@@ -13,7 +13,6 @@ package msp
 import (
 	"crypto"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/hex"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
@@ -38,7 +37,7 @@ type identity struct {
 	id *IdentityIdentifier
 
 	// cert contains the x.509 certificate that signs the public key of this instance
-	cert *x509.Certificate
+	cert ICertificate
 
 	// this is the public key of this instance
 	pk core.Key
@@ -59,11 +58,12 @@ type identity struct {
 	validationErr error
 }
 
-func newIdentity(cert *x509.Certificate, pk core.Key, msp *bccspmsp) (Identity, error) {
+func newIdentity(cert ICertificate, pk core.Key, msp *bccspmsp) (Identity, error) {
 	if mspIdentityLogger.IsEnabledFor(logging.DEBUG) {
-		mspIdentityLogger.Debugf("Creating identity instance for cert %s", certToPEM(cert))
+		//mspIdentityLogger.Debugf("Creating identity instance for cert %s", certToPEM(cert))
 	}
 
+	//TODO
 	// Sanitize first the certificate
 	cert, err := msp.sanitizeCert(cert)
 	if err != nil {
@@ -78,7 +78,7 @@ func newIdentity(cert *x509.Certificate, pk core.Key, msp *bccspmsp) (Identity, 
 		return nil, errors.WithMessage(err, "failed getting hash function options")
 	}
 
-	digest, err := msp.bccsp.Hash(cert.Raw, hashOpt)
+	digest, err := msp.bccsp.Hash(cert.Raw(), hashOpt)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed hashing raw certificate to compute the id of the IdentityIdentifier")
 	}
@@ -92,7 +92,7 @@ func newIdentity(cert *x509.Certificate, pk core.Key, msp *bccspmsp) (Identity, 
 
 // ExpiresAt returns the time at which the Identity expires.
 func (id *identity) ExpiresAt() time.Time {
-	return id.cert.NotAfter
+	return id.cert.ExpiresAt()
 }
 
 // SatisfiesPrincipal returns nil if this instance matches the supplied principal or an error otherwise
@@ -140,7 +140,7 @@ func (id *identity) GetOrganizationalUnits() []*OUIdentifier {
 	}
 
 	var res []*OUIdentifier
-	for _, unit := range id.cert.Subject.OrganizationalUnit {
+	for _, unit := range id.cert.Subject().OrganizationalUnit {
 		res = append(res, &OUIdentifier{
 			OrganizationalUnitIdentifier: unit,
 			CertifiersIdentifier:         cid,
@@ -177,7 +177,7 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 		mspIdentityLogger.Debugf("Verify: sig = %s", hex.Dump(sig))
 	}
 
-	valid, err := id.msp.bccsp.Verify(id.pk, sig, digest, nil)
+	valid, err := id.msp.bccsp.Verify(id.pk, sig, msg, nil)
 	if err != nil {
 		return errors.WithMessage(err, "could not determine the validity of the signature")
 	} else if !valid {
@@ -189,7 +189,7 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 
 // Serialize returns a byte array representation of this identity
 func (id *identity) Serialize() ([]byte, error) {
-	pb := &pem.Block{Bytes: id.cert.Raw, Type: "CERTIFICATE"}
+	pb := &pem.Block{Bytes: id.cert.Raw(), Type: "CERTIFICATE"}
 	pemBytes := pem.EncodeToMemory(pb)
 	if pemBytes == nil {
 		return nil, errors.New("encoding of identity failed")
@@ -223,7 +223,7 @@ type signingidentity struct {
 	signer crypto.Signer
 }
 
-func newSigningIdentity(cert *x509.Certificate, pk core.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
+func newSigningIdentity(cert ICertificate, pk core.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
 	//mspIdentityLogger.Infof("Creating signing identity instance for ID %s", id)
 	mspId, err := newIdentity(cert, pk, msp)
 	if err != nil {

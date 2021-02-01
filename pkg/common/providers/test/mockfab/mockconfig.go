@@ -81,3 +81,7 @@ func (c *MockCertPool) Get() (*x509.CertPool, error) {
 func (c *MockCertPool) Add(certs ...*x509.Certificate) {
 
 }
+
+func (c *MockCertPool) GetCerts() []*x509.Certificate {
+return nil
+}

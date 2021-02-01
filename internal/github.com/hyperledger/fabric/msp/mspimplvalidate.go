@@ -15,6 +15,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/tjfoc/gmsm/sm2"
 	"math/big"
 	"reflect"
 	"time"
@@ -55,7 +57,7 @@ func (msp *bccspmsp) validateIdentity(id *identity) error {
 }
 
 func (msp *bccspmsp) validateCAIdentity(id *identity) error {
-	if !id.cert.IsCA {
+	if !id.cert.IsCA() {
 		return errors.New("Only CA identities can be validated")
 	}
 
@@ -71,12 +73,12 @@ func (msp *bccspmsp) validateCAIdentity(id *identity) error {
 	return msp.validateIdentityAgainstChain(id, validationChain)
 }
 
-func (msp *bccspmsp) validateTLSCAIdentity(cert *x509.Certificate, opts *x509.VerifyOptions) error {
-	if !cert.IsCA {
+func (msp *bccspmsp) validateTLSCAIdentity(cert ICertificate, opts interface{}) error {
+	if !cert.IsCA() {
 		return errors.New("Only CA identities can be validated")
 	}
 
-	validationChain, err := msp.getUniqueValidationChain(cert, *opts)
+	validationChain, err := msp.getUniqueValidationChain(cert, opts)
 	if err != nil {
 		return errors.WithMessage(err, "could not obtain certification chain")
 	}
@@ -88,15 +90,15 @@ func (msp *bccspmsp) validateTLSCAIdentity(cert *x509.Certificate, opts *x509.Ve
 	return msp.validateCertAgainstChain(cert, validationChain)
 }
 
-func (msp *bccspmsp) validateIdentityAgainstChain(id *identity, validationChain []*x509.Certificate) error {
+func (msp *bccspmsp) validateIdentityAgainstChain(id *identity, validationChain []ICertificate) error {
 	return msp.validateCertAgainstChain(id.cert, validationChain)
 }
 
-func (msp *bccspmsp) validateCertAgainstChain(cert *x509.Certificate, validationChain []*x509.Certificate) error {
+func (msp *bccspmsp) validateCertAgainstChain(cert ICertificate, validationChain []ICertificate) error {
 	// here we know that the identity is valid; now we have to check whether it has been revoked
 
 	// identify the SKI of the CA that signed this cert
-	SKI, err := getSubjectKeyIdentifierFromCert(validationChain[1])
+	SKI, err := validationChain[1].SKI()
 	if err != nil {
 		return errors.WithMessage(err, "could not obtain Subject Key Identifier for signer cert")
 	}
@@ -113,7 +115,7 @@ func (msp *bccspmsp) validateCertAgainstChain(cert *x509.Certificate, validation
 		if bytes.Equal(aki, SKI) {
 			// we have a CRL, check whether the serial number is revoked
 			for _, rc := range crl.TBSCertList.RevokedCertificates {
-				if rc.SerialNumber.Cmp(cert.SerialNumber) == 0 {
+				if rc.SerialNumber.Cmp(cert.SerialNumber()) == 0 {
 					// We have found a CRL whose AKI matches the SKI of
 					// the CA (root or intermediate) that signed the
 					// certificate that is under validation. As a
@@ -274,20 +276,29 @@ func (msp *bccspmsp) validateIdentityOUsV142(id *identity) error {
 	return nil
 }
 
-func (msp *bccspmsp) getValidityOptsForCert(cert *x509.Certificate) x509.VerifyOptions {
+func (msp *bccspmsp) getValidityOptsForCert(cert ICertificate) interface{} {
 	// First copy the opts to override the CurrentTime field
 	// in order to make the certificate passing the expiration test
 	// independently from the real local current time.
 	// This is a temporary workaround for FAB-3678
 
-	var tempOpts x509.VerifyOptions
-	tempOpts.Roots = msp.opts.Roots
-	tempOpts.DNSName = msp.opts.DNSName
-	tempOpts.Intermediates = msp.opts.Intermediates
-	tempOpts.KeyUsages = msp.opts.KeyUsages
-	tempOpts.CurrentTime = cert.NotBefore.Add(time.Second)
-
-	return tempOpts
+	if common.IsSM2Certificate(cert.Raw(),false) {
+		var tempOpts sm2.VerifyOptions
+		tempOpts.Roots = msp.sm2opts.Roots
+		tempOpts.DNSName = msp.opts.DNSName
+		tempOpts.Intermediates = msp.sm2opts.Intermediates
+		tempOpts.KeyUsages = msp.sm2opts.KeyUsages
+		tempOpts.CurrentTime = cert.Get().(*x509.Certificate).NotBefore.Add(time.Second)
+		return tempOpts
+	}else {
+		var tempOpts x509.VerifyOptions
+		tempOpts.Roots = msp.opts.Roots
+		tempOpts.DNSName = msp.opts.DNSName
+		tempOpts.Intermediates = msp.opts.Intermediates
+		tempOpts.KeyUsages = msp.opts.KeyUsages
+		tempOpts.CurrentTime = cert.Get().(*x509.Certificate).NotBefore.Add(time.Second)
+		return tempOpts
+	}
 }
 
 /*

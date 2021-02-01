@@ -9,6 +9,7 @@ package membership
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
 
 	"strings"
 
@@ -89,7 +90,7 @@ func areCertDatesValid(serializedID []byte) error {
 	if bl == nil {
 		return errors.New("could not decode the PEM structure")
 	}
-	cert, err := x509.ParseCertificate(bl.Bytes)
+	cert, err := common.ParseCertificate(bl.Bytes)
 	if err != nil {
 		return err
 	}
@@ -233,8 +234,9 @@ func addCertsToConfig(config fab.EndpointConfig, pemCertsList [][]byte) {
 				continue
 			}
 
-			cert, err := x509.ParseCertificate(block.Bytes)
+			cert, err := common.ParseCertificate(block.Bytes)
 			if err != nil {
+				logger.Warn("%v",err)
 				continue
 			}
 			err = verifier.ValidateCertificateDates(cert)

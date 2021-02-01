@@ -9,24 +9,29 @@ package peer
 import (
 	reqContext "context"
 	"crypto/x509"
+	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
+	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
+	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
+	"github.com/tjfoc/gmtls/gmcredentials"
+	"google.golang.org/grpc/credentials"
 	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/protoutil"
-	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/errors/status"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"github.com/hyperledger/fabric-sdk-go/pkg/context"
-	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/endpoint"
 )
 
@@ -70,15 +75,45 @@ func newPeerEndorser(endorseReq *peerEndorserRequest) (*peerEndorser, error) {
 	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.WaitForReady(!endorseReq.failFast)))
 
 	if endpoint.AttemptSecured(endorseReq.target, endorseReq.allowInsecure) {
-		tlsConfig, err := comm.TLSConfig(endorseReq.certificate, endorseReq.serverHostOverride, endorseReq.config)
-		if err != nil {
-			return nil, err
+		isSM2 := false
+		for _,cert := range endorseReq.config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false){
+				isSM2 = true
+				break
+			}
 		}
-		//verify if certificate was expired or not yet valid
-		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
+		if !isSM2 {
+			//TODO
+			tlsConfig, err := comm.TLSConfig(endorseReq.certificate, endorseReq.serverHostOverride, endorseReq.config)
+			if err != nil {
+				return nil, err
+			}
+			//verify if certificate was expired or not yet valid
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
+			}
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+		}else {
+			certPool := sm2.NewCertPool()
+			if endorseReq.certificate != nil {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(endorseReq.certificate))
+			}
+			for _, cert := range endorseReq.config.TLSCACertPool().GetCerts() {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(cert))
+			}
+
+			var clientCerts []gmtls.Certificate
+			switch endorseReq.config.(type) {
+			case *fab2.EndpointConfig:
+				clientCerts = endorseReq.config.(*fab2.EndpointConfig).TLSClientSM2Certs()
+			}
+			tlsConfig := &gmtls.Config{RootCAs: certPool, Certificates: clientCerts, ServerName: endorseReq.serverHostOverride}
+			//verify if certificate was expired or not yet valid
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+				return verifier.VerifyPeerSM2Certificate(rawCerts, verifiedChains)
+			}
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig)))
 		}
-		grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	} else {
 		grpcOpts = append(grpcOpts, grpc.WithInsecure())
 	}

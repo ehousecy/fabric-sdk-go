@@ -8,11 +8,17 @@ package comm
 
 import (
 	"crypto/x509"
+	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
+	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
+	"github.com/tjfoc/gmtls/gmcredentials"
+	"google.golang.org/grpc/credentials"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
 
-	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/logging"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/options"
 	fabcontext "github.com/hyperledger/fabric-sdk-go/pkg/common/providers/context"
@@ -21,7 +27,6 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/endpoint"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 var logger = logging.NewLogger("fabsdk/fab")
@@ -130,16 +135,45 @@ func newDialOpts(config fab.EndpointConfig, url string, params *params) ([]grpc.
 	dialOpts = append(dialOpts, grpc.WithDefaultCallOptions(grpc.WaitForReady(!params.failFast)))
 
 	if endpoint.AttemptSecured(url, params.insecure) {
-		tlsConfig, err := comm.TLSConfig(params.certificate, params.hostOverride, config)
-		if err != nil {
-			return nil, err
+		isSM2 := false
+		for _,cert := range config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false){
+				isSM2 = true
+				break
+			}
 		}
-		//verify if certificate was expired or not yet valid
-		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
-		}
+		if !isSM2 {
+			tlsConfig, err := comm.TLSConfig(params.certificate, params.hostOverride, config)
+			if err != nil {
+				return nil, err
+			}
+			//verify if certificate was expired or not yet valid
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
+			}
 
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+			dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+		}else {
+			certPool := sm2.NewCertPool()
+			if params.certificate != nil {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(params.certificate))
+			}
+			for _,cert := range config.TLSCACertPool().GetCerts() {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(cert))
+			}
+
+			var clientCerts []gmtls.Certificate
+			switch config.(type) {
+			case *fab2.EndpointConfig:
+				clientCerts = config.(*fab2.EndpointConfig).TLSClientSM2Certs()
+			}
+
+			tlsConfig := &gmtls.Config{RootCAs: certPool, Certificates: clientCerts, ServerName: params.hostOverride}
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+				return verifier.VerifyPeerSM2Certificate(rawCerts, verifiedChains)
+			}
+			dialOpts = append(dialOpts, grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig)))
+		}
 		logger.Debugf("Creating a secure connection to [%s] with TLS HostOverride [%s]", url, params.hostOverride)
 	} else {
 		logger.Debugf("Creating an insecure connection [%s]", url)

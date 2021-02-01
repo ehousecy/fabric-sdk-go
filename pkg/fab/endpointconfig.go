@@ -9,6 +9,8 @@ package fab
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/tjfoc/gmtls"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -152,6 +154,7 @@ type EndpointConfig struct {
 	channelPeersByChannel    map[string][]fab.ChannelPeer
 	channelOrderersByChannel map[string][]fab.OrdererConfig
 	tlsClientCerts           []tls.Certificate
+	tlsClientSM2Certs        []gmtls.Certificate
 	peerMatchers             []matcherEntry
 	ordererMatchers          []matcherEntry
 	channelMatchers          []matcherEntry
@@ -295,6 +298,10 @@ func (c *EndpointConfig) TLSClientCerts() []tls.Certificate {
 	return c.tlsClientCerts
 }
 
+func (c *EndpointConfig) TLSClientSM2Certs() []gmtls.Certificate{
+	return c.tlsClientSM2Certs
+}
+
 func (c *EndpointConfig) loadPrivateKeyFromConfig(clientConfig *ClientConfig, clientCerts tls.Certificate, cb []byte) ([]tls.Certificate, error) {
 
 	kb := clientConfig.TLSCerts.Client.Key.Bytes()
@@ -306,7 +313,6 @@ func (c *EndpointConfig) loadPrivateKeyFromConfig(clientConfig *ClientConfig, cl
 	}
 
 	logger.Debug("pk read from config successfully")
-
 	return []tls.Certificate{clientCerts}, nil
 }
 
@@ -1395,7 +1401,6 @@ func (c *EndpointConfig) loadTLSClientCerts(configEntity *endpointConfigEntity) 
 	cb := configEntity.Client.TLSCerts.Client.Cert.Bytes()
 	if len(cb) == 0 {
 		// if no cert found in the config, empty cert chain should be used
-		c.tlsClientCerts = []tls.Certificate{clientCerts}
 		return nil
 	}
 
@@ -1406,11 +1411,20 @@ func (c *EndpointConfig) loadTLSClientCerts(configEntity *endpointConfigEntity) 
 	// If CryptoSuite fails to load private key from cert then load private key from config
 	if err != nil || pk == nil {
 		logger.Debugf("Reading pk from config, unable to retrieve from cert: %s", err)
-		tlsClientCerts, error := c.loadPrivateKeyFromConfig(&configEntity.Client, clientCerts, cb)
-		if error != nil {
-			return errors.WithMessage(error, "failed to load TLS client certs")
+		kb := configEntity.Client.TLSCerts.Client.Key.Bytes()
+		if common.IsSM2Certificate(cb, true){
+			cert,err := gmtls.X509KeyPair(cb,kb)
+			if err != nil {
+				return errors.WithMessage(err, "failed to load GMTLS client certs")
+			}
+			c.tlsClientSM2Certs = []gmtls.Certificate{cert}
+		}else{
+			cert,err := tls.X509KeyPair(cb,kb)
+			if err != nil {
+				return errors.WithMessage(err, "failed to load GMTLS client certs")
+			}
+			c.tlsClientCerts = []tls.Certificate{cert}
 		}
-		c.tlsClientCerts = tlsClientCerts
 		return nil
 	}
 

@@ -7,9 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 package msp
 
 import (
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
 	"strconv"
 	"strings"
 
@@ -282,7 +282,7 @@ func appendCertsFromPEM(c commtls.CertPool, pemCerts []byte) (ok bool) {
 			continue
 		}
 
-		cert, err := x509.ParseCertificate(block.Bytes)
+		cert, err := common.ParseCertificate(block.Bytes)
 		if err != nil {
 			continue
 		}

@@ -24,6 +24,7 @@ type CertPool interface {
 	//Add allows adding certificates to CertPool
 	//Call Get() after Add() to get the updated certpool
 	Add(certs ...*x509.Certificate)
+	GetCerts() []*x509.Certificate
 }
 
 // certPool is a thread safe wrapper around the x509 standard library
@@ -99,6 +100,11 @@ func (c *certPool) Add(certs ...*x509.Certificate) {
 		atomic.CompareAndSwapInt32(&c.dirty, 0, 1)
 	}
 }
+
+func (c *certPool) GetCerts() []*x509.Certificate {
+	return c.certs
+}
+
 
 func (c *certPool) swapCertPool() error {
 

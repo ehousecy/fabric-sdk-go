@@ -9,6 +9,7 @@ package endpoint
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common"
 	"io/ioutil"
 	"strings"
 
@@ -110,7 +111,7 @@ func (cfg *TLSConfig) TLSCert() (*x509.Certificate, bool, error) {
 	block, _ := pem.Decode(cfg.bytes)
 
 	if block != nil {
-		pub, err := x509.ParseCertificate(block.Bytes)
+		pub, err := common.ParseCertificate(block.Bytes)
 		if err != nil {
 			return nil, false, errors.Wrap(err, "certificate parsing failed")
 		}

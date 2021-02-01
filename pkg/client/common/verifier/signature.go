@@ -9,6 +9,7 @@ package verifier
 
 import (
 	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/common"
@@ -78,6 +79,20 @@ func ValidateCertificateDates(cert *x509.Certificate) error {
 	return nil
 }
 
+func ValidateSM2CertificateDates(cert *sm2.Certificate) error {
+	if cert == nil {
+		return nil
+	}
+	if time.Now().UTC().Before(cert.NotBefore) {
+		return errors.New("Certificate provided is not valid until later date")
+	}
+
+	if time.Now().UTC().After(cert.NotAfter) {
+		return errors.New("Certificate provided has expired")
+	}
+	return nil
+}
+
 //VerifyPeerCertificate verifies raw certs and chain certs for expiry and not yet valid dates
 func VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	for _, chaincert := range rawCerts {
@@ -97,6 +112,35 @@ func VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certifica
 	for _, certs := range verifiedChains {
 		for _, cert := range certs {
 			err := ValidateCertificateDates(cert)
+			if err != nil {
+				//cert is expired or not valid
+				logger.Warn(err.Error())
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+//VerifyPeerCertificate verifies raw certs and chain certs for expiry and not yet valid dates
+func VerifyPeerSM2Certificate(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+	for _, chaincert := range rawCerts {
+		cert, err := sm2.ParseCertificate(chaincert)
+		if err != nil {
+			logger.Warn("Got error while verifying cert")
+		}
+		if cert != nil {
+			err = ValidateSM2CertificateDates(cert)
+			if err != nil {
+				//cert is expired or not valid
+				logger.Warn(err.Error())
+				return err
+			}
+		}
+	}
+	for _, certs := range verifiedChains {
+		for _, cert := range certs {
+			err := ValidateSM2CertificateDates(cert)
 			if err != nil {
 				//cert is expired or not valid
 				logger.Warn(err.Error())

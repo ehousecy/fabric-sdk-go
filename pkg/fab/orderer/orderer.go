@@ -9,6 +9,13 @@ package orderer
 import (
 	reqContext "context"
 	"crypto/x509"
+	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
+	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
+	"github.com/tjfoc/gmtls/gmcredentials"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"time"
 
@@ -16,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	grpcstatus "google.golang.org/grpc/status"
 
@@ -27,7 +33,6 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/logging"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"github.com/hyperledger/fabric-sdk-go/pkg/context"
-	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/endpoint"
 )
 
@@ -76,16 +81,45 @@ func New(config fab.EndpointConfig, opts ...Option) (*Orderer, error) {
 	}
 	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.WaitForReady(!orderer.failFast)))
 	if endpoint.AttemptSecured(orderer.url, orderer.allowInsecure) {
-		//tls config
-		tlsConfig, err := comm.TLSConfig(orderer.tlsCACert, orderer.serverName, config)
-		if err != nil {
-			return nil, err
+		isSM2 := false
+		for _,cert := range config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false){
+				isSM2 = true
+				break
+			}
 		}
-		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
-		}
+		if !isSM2 {
+			//tls config
+			tlsConfig, err := comm.TLSConfig(orderer.tlsCACert, orderer.serverName, config)
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
+			}
 
-		grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+		}else {
+			certPool := sm2.NewCertPool()
+			if orderer.tlsCACert != nil {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(orderer.tlsCACert))
+			}
+			for _, cert := range config.TLSCACertPool().GetCerts() {
+				certPool.AddCert(common2.ParseX509Certificate2Sm2(cert))
+			}
+
+			var clientCerts []gmtls.Certificate
+			switch config.(type) {
+			case *fab2.EndpointConfig:
+				clientCerts = config.(*fab2.EndpointConfig).TLSClientSM2Certs()
+			}
+
+			tlsConfig := &gmtls.Config{RootCAs: certPool, Certificates: clientCerts, ServerName: orderer.serverName}
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+				return verifier.VerifyPeerSM2Certificate(rawCerts, verifiedChains)
+			}
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig)))
+		}
 	} else {
 		grpcOpts = append(grpcOpts, grpc.WithInsecure())
 	}

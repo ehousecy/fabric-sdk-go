@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
+	"github.com/tjfoc/gmtls/gmcredentials"
+	"google.golang.org/grpc/credentials"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -16,7 +18,6 @@ import (
 	fabcontext "github.com/hyperledger/fabric-sdk-go/pkg/common/providers/context"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
 
@@ -57,14 +58,29 @@ func NewStreamConnection(ctx fabcontext.Client, chConfig fab.ChannelCfg, streamP
 	}
 
 	if peer.AuthInfo != nil {
-		tlsInfo := peer.AuthInfo.(credentials.TLSInfo)
-		for _, peercert := range tlsInfo.State.PeerCertificates {
-			err := verifier.ValidateCertificateDates(peercert)
-			if err != nil {
-				logger.Error(err)
-				return nil, errors.Wrapf(err, "error validating certificate dates for [%v]", peercert.Subject)
+		switch peer.AuthInfo.(type) {
+		case credentials.TLSInfo:
+			tlsInfo := peer.AuthInfo.(credentials.TLSInfo)
+			for _, peercert := range tlsInfo.State.PeerCertificates {
+				err := verifier.ValidateCertificateDates(peercert)
+				if err != nil {
+					logger.Error(err)
+					return nil, errors.Wrapf(err, "error validating certificate dates for [%v]", peercert.Subject)
+				}
 			}
+		case gmcredentials.TLSInfo:
+			tlsInfo := peer.AuthInfo.(gmcredentials.TLSInfo)
+			for _, peercert := range tlsInfo.State.PeerCertificates {
+				err := verifier.ValidateSM2CertificateDates(peercert)
+				if err != nil {
+					logger.Error(err)
+					return nil, errors.Wrapf(err, "error validating certificate dates for [%v]", peercert.Subject)
+				}
+			}
+		default:
+			panic("UnSupport AuthInfo Type")
 		}
+
 	}
 
 	return &StreamConnection{
