@@ -781,30 +781,33 @@ func (msp *bccspmsp) getCertificationChainIdentifierFromChain(chain []ICertifica
 // do have signatures in Low-S. If this is not the case, the certificate
 // is regenerated to have a Low-S signature.
 func (msp *bccspmsp) sanitizeCert(cert ICertificate) (ICertificate, error) {
-	//TODO
-	//if isECDSASignedCert(cert) {
-	//	// Lookup for a parent certificate to perform the sanitization
-	//	var parentCert *x509.Certificate
-	//	chain, err := msp.getUniqueValidationChain(cert, msp.getValidityOptsForCert(cert))
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	// at this point, cert might be a root CA certificate
-	//	// or an intermediate CA certificate
-	//	if cert.IsCA && len(chain) == 1 {
-	//		// cert is a root CA certificate
-	//		parentCert = cert
-	//	} else {
-	//		parentCert = chain[1]
-	//	}
-	//
-	//	// Sanitize
-	//	cert, err = sanitizeECDSASignedCert(cert, parentCert)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
+	if !common.IsSM2Certificate(cert.Raw(),false){
+		if isECDSASignedCert(cert.Get().(*x509.Certificate)) {
+			// Lookup for a parent certificate to perform the sanitization
+			var parentCert *x509.Certificate
+			chain, err := msp.getUniqueValidationChain(cert, msp.getValidityOptsForCert(cert))
+			if err != nil {
+				return nil, err
+			}
+
+			// at this point, cert might be a root CA certificate
+			// or an intermediate CA certificate
+			if cert.IsCA() && len(chain) == 1 {
+				// cert is a root CA certificate
+				parentCert = cert.Get().(*x509.Certificate)
+			} else {
+				parentCert = chain[1].Get().(*x509.Certificate)
+			}
+
+			// Sanitize
+			x509cert, err := sanitizeECDSASignedCert(cert.Get().(*x509.Certificate), parentCert)
+			if err != nil {
+				return nil, err
+			}
+			return NewCertificate(x509cert),nil
+		}
+	}
+
 	return cert, nil
 }
 

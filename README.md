@@ -24,19 +24,17 @@
 - [x] tls部分增加对国密tls的支持
 - [x] 其他适配
   - [x] ImportBCCSPKeyFromPEMBytes增加sm2.privateKey的支持
-- [ ] sanitizeCert 实现    
+- [x] sanitizeCert方法修改  
 
 #### 项目测试
 
 ```
 # 1使用fabric-samples/fabcar进行测试
 # 1.1 修改go.mod
-# 1.1.1 首先通过命令获取fabric-chaincode-go版本号
+# 1.1.1 首先通过命令获取fabric-sdk-go版本号
 go get github.com/ehousecy/fabric-sdk-go@develop
 # 1.1.2 go.mod添加replace
-replace (
-	github.com/hyperledger/fabric-chaincode-go => github.com/ehousecy/fabric-sdk-go v0.0.0-20210122024824-3b16b5f9d519
-)
+replace github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go v1.0.0-rc1.0.20210201104547-9895c8ce0d04
 # 2 下载依赖
 go mod vendor
 # 3 运行项目
