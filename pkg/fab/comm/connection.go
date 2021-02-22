@@ -8,12 +8,12 @@ package comm
 
 import (
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
 	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/gmcredentials"
 	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
-	"github.com/tjfoc/gmtls/gmcredentials"
 	"google.golang.org/grpc/credentials"
 	"sync/atomic"
 
@@ -136,8 +136,8 @@ func newDialOpts(config fab.EndpointConfig, url string, params *params) ([]grpc.
 
 	if endpoint.AttemptSecured(url, params.insecure) {
 		isSM2 := false
-		for _,cert := range config.TLSCACertPool().GetCerts() {
-			if common2.IsSM2Certificate(cert.Raw, false){
+		for _, cert := range config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false) {
 				isSM2 = true
 				break
 			}
@@ -153,12 +153,12 @@ func newDialOpts(config fab.EndpointConfig, url string, params *params) ([]grpc.
 			}
 
 			dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-		}else {
-			certPool := sm2.NewCertPool()
+		} else {
+			certPool := x509GM.NewCertPool()
 			if params.certificate != nil {
 				certPool.AddCert(common2.ParseX509Certificate2Sm2(params.certificate))
 			}
-			for _,cert := range config.TLSCACertPool().GetCerts() {
+			for _, cert := range config.TLSCACertPool().GetCerts() {
 				certPool.AddCert(common2.ParseX509Certificate2Sm2(cert))
 			}
 
@@ -169,7 +169,7 @@ func newDialOpts(config fab.EndpointConfig, url string, params *params) ([]grpc.
 			}
 
 			tlsConfig := &gmtls.Config{RootCAs: certPool, Certificates: clientCerts, ServerName: params.hostOverride}
-			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509GM.Certificate) error {
 				return verifier.VerifyPeerSM2Certificate(rawCerts, verifiedChains)
 			}
 			dialOpts = append(dialOpts, grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig)))

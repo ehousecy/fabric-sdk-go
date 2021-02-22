@@ -15,8 +15,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common"
-	"github.com/tjfoc/gmsm/sm2"
 	"math/big"
 	"reflect"
 	"time"
@@ -282,7 +282,7 @@ func (msp *bccspmsp) getValidityOptsForCert(cert ICertificate) interface{} {
 	// independently from the real local current time.
 	// This is a temporary workaround for FAB-3678
 
-	if common.IsSM2Certificate(cert.Raw(),false) {
+	if common.IsSM2Certificate(cert.Raw(), false) {
 		var tempOpts sm2.VerifyOptions
 		tempOpts.Roots = msp.sm2opts.Roots
 		tempOpts.DNSName = msp.opts.DNSName
@@ -290,7 +290,7 @@ func (msp *bccspmsp) getValidityOptsForCert(cert ICertificate) interface{} {
 		tempOpts.KeyUsages = msp.sm2opts.KeyUsages
 		tempOpts.CurrentTime = cert.Get().(*x509.Certificate).NotBefore.Add(time.Second)
 		return tempOpts
-	}else {
+	} else {
 		var tempOpts x509.VerifyOptions
 		tempOpts.Roots = msp.opts.Roots
 		tempOpts.DNSName = msp.opts.DNSName

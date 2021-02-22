@@ -22,10 +22,9 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 	"math/big"
-
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 type SM2Signature struct {
@@ -42,7 +41,7 @@ var (
 		elliptic.P256(): new(big.Int).Rsh(elliptic.P256().Params().N, 1),
 		elliptic.P384(): new(big.Int).Rsh(elliptic.P384().Params().N, 1),
 		elliptic.P521(): new(big.Int).Rsh(elliptic.P521().Params().N, 1),
-		sm2.P256Sm2():   new(big.Int).Rsh(sm2.P256Sm2().Params().N, 1),
+		sm2.P256():      new(big.Int).Rsh(sm2.P256().Params().N, 1),
 	}
 )
 
@@ -146,7 +145,7 @@ func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
 		return nil, false, err
 	}
 
-	if !lowS && k.Curve != sm2.P256Sm2() {
+	if !lowS && k.Curve != sm2.P256() {
 		// Set s to N - s that will be then in the lower part of signature space
 		// less or equal to half order
 		s.Sub(k.Params().N, s)

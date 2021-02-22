@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"io"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/logging"
@@ -57,7 +58,7 @@ func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
 		return nil, errors.Errorf("Unable to decode cert bytes [%v]", cert)
 	}
 
-	x509Cert, err := x509.ParseCertificate(dcert.Bytes)
+	x509Cert, err := x509GM.ParseCertificate(dcert.Bytes)
 	if err != nil {
 		return nil, errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
 	}

@@ -9,8 +9,8 @@ package fab
 import (
 	"crypto/tls"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common"
-	"github.com/tjfoc/gmtls"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -298,7 +298,7 @@ func (c *EndpointConfig) TLSClientCerts() []tls.Certificate {
 	return c.tlsClientCerts
 }
 
-func (c *EndpointConfig) TLSClientSM2Certs() []gmtls.Certificate{
+func (c *EndpointConfig) TLSClientSM2Certs() []gmtls.Certificate {
 	return c.tlsClientSM2Certs
 }
 
@@ -1412,14 +1412,14 @@ func (c *EndpointConfig) loadTLSClientCerts(configEntity *endpointConfigEntity) 
 	if err != nil || pk == nil {
 		logger.Debugf("Reading pk from config, unable to retrieve from cert: %s", err)
 		kb := configEntity.Client.TLSCerts.Client.Key.Bytes()
-		if common.IsSM2Certificate(cb, true){
-			cert,err := gmtls.X509KeyPair(cb,kb)
+		if common.IsSM2Certificate(cb, true) {
+			cert, err := gmtls.X509KeyPair(cb, kb)
 			if err != nil {
 				return errors.WithMessage(err, "failed to load GMTLS client certs")
 			}
 			c.tlsClientSM2Certs = []gmtls.Certificate{cert}
-		}else{
-			cert,err := tls.X509KeyPair(cb,kb)
+		} else {
+			cert, err := tls.X509KeyPair(cb, kb)
 			if err != nil {
 				return errors.WithMessage(err, "failed to load GMTLS client certs")
 			}

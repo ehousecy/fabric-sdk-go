@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	gmsigner "github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric-ca/lib/gm/signer"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -205,7 +206,14 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, core.Key, error) {
 		return nil, nil, err
 	}
 
-	csrPEM, err := csr.Generate(cspSigner, cr)
+	var csrPEM []byte
+
+	if cr.KeyRequest.Algo() == "gmsm2" {
+		csrPEM, err = gmsigner.GenerateGMCsr(cspSigner, cr)
+	} else {
+		csrPEM, err = csr.Generate(cspSigner, cr)
+	}
+
 	if err != nil {
 		log.Debugf("failed generating CSR: %s", err)
 		return nil, nil, err

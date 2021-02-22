@@ -3,36 +3,36 @@ package common
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"github.com/tjfoc/gmsm/sm2"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 )
 
-func IsSM2Certificate (pemCert []byte, needDecode bool) bool {
+func IsSM2Certificate(pemCert []byte, needDecode bool) bool {
 	if needDecode {
 		var block *pem.Block
 		block, _ = pem.Decode(pemCert)
-		cert, err := sm2.ParseCertificate(block.Bytes)
+		cert, err := x509GM.ParseCertificate(block.Bytes)
 		if err == nil {
-			return cert.SignatureAlgorithm == sm2.SM2WithSM3
+			return cert.SignatureAlgorithm == x509GM.SM2WithSM3
 		}
-	}else{
-		cert, err := sm2.ParseCertificate(pemCert)
+	} else {
+		cert, err := x509GM.ParseCertificate(pemCert)
 		if err == nil {
-			return cert.SignatureAlgorithm == sm2.SM2WithSM3
+			return cert.SignatureAlgorithm == x509GM.SM2WithSM3
 		}
 	}
 	return false
 }
 
-func ParseCertificate (pem []byte) (*x509.Certificate,error){
-	cert,err := sm2.ParseCertificate(pem)
+func ParseCertificate(pem []byte) (*x509.Certificate, error) {
+	cert, err := x509GM.ParseCertificate(pem)
 	if err != nil {
-		return &x509.Certificate{},err
+		return &x509.Certificate{}, err
 	}
-	return ParseSm2Certificate2X509(cert),nil
+	return ParseSm2Certificate2X509(cert), nil
 }
 
 //sm2 证书转换 x509 证书
-func ParseSm2Certificate2X509(sm2Cert *sm2.Certificate) *x509.Certificate {
+func ParseSm2Certificate2X509(sm2Cert *x509GM.Certificate) *x509.Certificate {
 	if sm2Cert == nil {
 		return nil
 	}
@@ -67,8 +67,8 @@ func ParseSm2Certificate2X509(sm2Cert *sm2.Certificate) *x509.Certificate {
 		UnknownExtKeyUsage: sm2Cert.UnknownExtKeyUsage,
 
 		BasicConstraintsValid: sm2Cert.BasicConstraintsValid,
-		IsCA:       sm2Cert.IsCA,
-		MaxPathLen: sm2Cert.MaxPathLen,
+		IsCA:                  sm2Cert.IsCA,
+		MaxPathLen:            sm2Cert.MaxPathLen,
 		// MaxPathLenZero indicates that BasicConstraintsValid==true and
 		// MaxPathLen==0 should be interpreted as an actual maximum path length
 		// of zero. Otherwise, that combination is interpreted as MaxPathLen
@@ -104,8 +104,8 @@ func ParseSm2Certificate2X509(sm2Cert *sm2.Certificate) *x509.Certificate {
 }
 
 // X509证书格式转换为 SM2证书格式
-func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
-	sm2cert := &sm2.Certificate{
+func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *x509GM.Certificate {
+	sm2cert := &x509GM.Certificate{
 		Raw:                     x509Cert.Raw,
 		RawTBSCertificate:       x509Cert.RawTBSCertificate,
 		RawSubjectPublicKeyInfo: x509Cert.RawSubjectPublicKeyInfo,
@@ -113,9 +113,9 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 		RawIssuer:               x509Cert.RawIssuer,
 
 		Signature:          x509Cert.Signature,
-		SignatureAlgorithm: sm2.SignatureAlgorithm(x509Cert.SignatureAlgorithm),
+		SignatureAlgorithm: x509GM.SignatureAlgorithm(x509Cert.SignatureAlgorithm),
 
-		PublicKeyAlgorithm: sm2.PublicKeyAlgorithm(x509Cert.PublicKeyAlgorithm),
+		PublicKeyAlgorithm: x509GM.PublicKeyAlgorithm(x509Cert.PublicKeyAlgorithm),
 		PublicKey:          x509Cert.PublicKey,
 
 		Version:      x509Cert.Version,
@@ -124,7 +124,7 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 		Subject:      x509Cert.Subject,
 		NotBefore:    x509Cert.NotBefore,
 		NotAfter:     x509Cert.NotAfter,
-		KeyUsage:     sm2.KeyUsage(x509Cert.KeyUsage),
+		KeyUsage:     x509GM.KeyUsage(x509Cert.KeyUsage),
 
 		Extensions: x509Cert.Extensions,
 
@@ -136,8 +136,8 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 		UnknownExtKeyUsage: x509Cert.UnknownExtKeyUsage,
 
 		BasicConstraintsValid: x509Cert.BasicConstraintsValid,
-		IsCA:       x509Cert.IsCA,
-		MaxPathLen: x509Cert.MaxPathLen,
+		IsCA:                  x509Cert.IsCA,
+		MaxPathLen:            x509Cert.MaxPathLen,
 		// MaxPathLenZero indicates that BasicConstraintsValid==true and
 		// MaxPathLen==0 should be interpreted as an actual maximum path length
 		// of zero. Otherwise, that combination is interpreted as MaxPathLen
@@ -166,7 +166,7 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 		PolicyIdentifiers: x509Cert.PolicyIdentifiers,
 	}
 	for _, val := range x509Cert.ExtKeyUsage {
-		sm2cert.ExtKeyUsage = append(sm2cert.ExtKeyUsage, sm2.ExtKeyUsage(val))
+		sm2cert.ExtKeyUsage = append(sm2cert.ExtKeyUsage, x509GM.ExtKeyUsage(val))
 	}
 
 	return sm2cert

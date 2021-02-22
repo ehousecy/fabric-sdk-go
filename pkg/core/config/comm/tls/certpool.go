@@ -105,7 +105,6 @@ func (c *certPool) GetCerts() []*x509.Certificate {
 	return c.certs
 }
 
-
 func (c *certPool) swapCertPool() error {
 
 	newCertPool, err := loadSystemCertPool(c.systemCertPool)

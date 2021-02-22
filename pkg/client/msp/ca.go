@@ -198,8 +198,14 @@ type GetCAInfoResponse struct {
 	Version string
 }
 
+type KeyRequest struct {
+	Algo string
+	Size int
+}
+
 // CSRInfo is Certificate Signing Request (CSR) Information
 type CSRInfo struct {
-	CN    string
-	Hosts []string
+	CN         string
+	Hosts      []string
+	KeyRequest *KeyRequest
 }

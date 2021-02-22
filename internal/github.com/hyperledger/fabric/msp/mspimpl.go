@@ -16,6 +16,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/pem"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/golang/protobuf/proto"
 	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/utils"
@@ -23,7 +24,6 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/common"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
 	"github.com/pkg/errors"
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 // mspSetupFuncType is the prototype of the setup function
@@ -88,7 +88,7 @@ type bccspmsp struct {
 	name string
 
 	// verification options for MSP members
-	opts *x509.VerifyOptions
+	opts    *x509.VerifyOptions
 	sm2opts *sm2.VerifyOptions
 
 	// list of certificate revocation lists
@@ -171,7 +171,6 @@ func (msp *bccspmsp) getIdentityFromConf(idBytes []byte) (Identity, core.Key, er
 	if err != nil {
 		return nil, nil, err
 	}
-
 
 	//TODO
 	// get the public key in the right format
@@ -708,7 +707,7 @@ func (msp *bccspmsp) getUniqueValidationChain(cert ICertificate, opts interface{
 	if msp.opts == nil {
 		return nil, errors.New("the supplied identity has no verify options")
 	}
-	validationChains,err := cert.Verify(opts)
+	validationChains, err := cert.Verify(opts)
 	if err != nil {
 		return nil, errors.WithMessage(err, "the supplied identity is not valid")
 	}
@@ -720,7 +719,7 @@ func (msp *bccspmsp) getUniqueValidationChain(cert ICertificate, opts interface{
 		return nil, errors.Errorf("this MSP only supports a single validation chain, got %d", len(validationChains))
 	}
 
-	return  validationChains[0], nil
+	return validationChains[0], nil
 }
 
 func (msp *bccspmsp) getValidationChain(cert ICertificate, isIntermediateChain bool) ([]ICertificate, error) {
@@ -781,7 +780,7 @@ func (msp *bccspmsp) getCertificationChainIdentifierFromChain(chain []ICertifica
 // do have signatures in Low-S. If this is not the case, the certificate
 // is regenerated to have a Low-S signature.
 func (msp *bccspmsp) sanitizeCert(cert ICertificate) (ICertificate, error) {
-	if !common.IsSM2Certificate(cert.Raw(),false){
+	if !common.IsSM2Certificate(cert.Raw(), false) {
 		if isECDSASignedCert(cert.Get().(*x509.Certificate)) {
 			// Lookup for a parent certificate to perform the sanitization
 			var parentCert *x509.Certificate
@@ -804,7 +803,7 @@ func (msp *bccspmsp) sanitizeCert(cert ICertificate) (ICertificate, error) {
 			if err != nil {
 				return nil, err
 			}
-			return NewCertificate(x509cert),nil
+			return NewCertificate(x509cert), nil
 		}
 	}
 

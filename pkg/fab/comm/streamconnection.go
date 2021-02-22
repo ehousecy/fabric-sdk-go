@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"github.com/tjfoc/gmtls/gmcredentials"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/gmcredentials"
 	"google.golang.org/grpc/credentials"
 	"sync"
 

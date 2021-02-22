@@ -236,7 +236,7 @@ func addCertsToConfig(config fab.EndpointConfig, pemCertsList [][]byte) {
 
 			cert, err := common.ParseCertificate(block.Bytes)
 			if err != nil {
-				logger.Warn("%v",err)
+				logger.Warn("%v", err)
 				continue
 			}
 			err = verifier.ValidateCertificateDates(cert)

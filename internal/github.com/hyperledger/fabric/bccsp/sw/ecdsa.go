@@ -23,11 +23,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 func signECDSA(k *ecdsa.PrivateKey, digest []byte, opts bccsp.SignerOpts) ([]byte, error) {
@@ -65,12 +64,12 @@ func verifyECDSA(k *ecdsa.PublicKey, signature, digest []byte, opts bccsp.Signer
 type ecdsaSigner struct{}
 
 func (s *ecdsaSigner) Sign(k bccsp.Key, msg []byte, opts bccsp.SignerOpts) ([]byte, error) {
-	hasher := &hasher{hash: sha256.New}
-	digest, err := hasher.Hash(msg, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to sign msg[%s]", err)
-	}
-	return signECDSA(k.(*ecdsaPrivateKey).privKey, digest, opts)
+	//hasher := &hasher{hash: sha256.New}
+	//digest, err := hasher.Hash(msg, nil)
+	//if err != nil {
+	//	return nil, fmt.Errorf("Failed to sign msg[%s]", err)
+	//}
+	return signECDSA(k.(*ecdsaPrivateKey).privKey, msg, opts)
 }
 
 type ecdsaPrivateKeyVerifier struct{}
@@ -85,7 +84,7 @@ func (v *ecdsaPublicKeyKeyVerifier) Verify(k bccsp.Key, signature, msg []byte, o
 	puk := k.(*ecdsaPublicKey).pubKey
 
 	switch puk.Curve {
-	case sm2.P256Sm2():
+	case sm2.P256():
 		sm2pk := sm2.PublicKey{
 			Curve: puk.Curve,
 			X:     puk.X,
@@ -93,12 +92,12 @@ func (v *ecdsaPublicKeyKeyVerifier) Verify(k bccsp.Key, signature, msg []byte, o
 		}
 		return verifyGMSM2(&sm2pk, signature, msg, opts)
 	case elliptic.P256():
-		hasher := &hasher{hash: sha256.New}
-		digest, err := hasher.Hash(msg, nil)
-		if err != nil {
-			return false, fmt.Errorf("Failed to sign msg[%s]", err)
-		}
-		return verifyECDSA(k.(*ecdsaPublicKey).pubKey, signature, digest, opts)
+		//hasher := &hasher{hash: sha256.New}
+		//digest, err := hasher.Hash(msg, nil)
+		//if err != nil {
+		//	return false, fmt.Errorf("Failed to sign msg[%s]", err)
+		//}
+		return verifyECDSA(k.(*ecdsaPublicKey).pubKey, signature, msg, opts)
 	default:
 		panic("UnSupport Curve for ecdsaPublicKeyKeyVerifier")
 	}

@@ -9,12 +9,12 @@ package orderer
 import (
 	reqContext "context"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/gmcredentials"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
 	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
-	"github.com/tjfoc/gmtls/gmcredentials"
 	"google.golang.org/grpc/credentials"
 	"io"
 	"time"
@@ -82,8 +82,8 @@ func New(config fab.EndpointConfig, opts ...Option) (*Orderer, error) {
 	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.WaitForReady(!orderer.failFast)))
 	if endpoint.AttemptSecured(orderer.url, orderer.allowInsecure) {
 		isSM2 := false
-		for _,cert := range config.TLSCACertPool().GetCerts() {
-			if common2.IsSM2Certificate(cert.Raw, false){
+		for _, cert := range config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false) {
 				isSM2 = true
 				break
 			}
@@ -99,8 +99,8 @@ func New(config fab.EndpointConfig, opts ...Option) (*Orderer, error) {
 			}
 
 			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-		}else {
-			certPool := sm2.NewCertPool()
+		} else {
+			certPool := x509GM.NewCertPool()
 			if orderer.tlsCACert != nil {
 				certPool.AddCert(common2.ParseX509Certificate2Sm2(orderer.tlsCACert))
 			}
@@ -115,7 +115,7 @@ func New(config fab.EndpointConfig, opts ...Option) (*Orderer, error) {
 			}
 
 			tlsConfig := &gmtls.Config{RootCAs: certPool, Certificates: clientCerts, ServerName: orderer.serverName}
-			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*sm2.Certificate) error {
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509GM.Certificate) error {
 				return verifier.VerifyPeerSM2Certificate(rawCerts, verifiedChains)
 			}
 			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig)))

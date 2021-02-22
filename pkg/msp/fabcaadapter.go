@@ -541,8 +541,9 @@ func createCSRInfo(csr *api.CSRInfo) *caapi.CSRInfo {
 	}
 
 	return &caapi.CSRInfo{
-		CN:    csr.CN,
-		Hosts: csr.Hosts,
+		CN:         csr.CN,
+		Hosts:      csr.Hosts,
+		KeyRequest: csr.KeyRequest,
 	}
 }
 

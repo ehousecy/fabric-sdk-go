@@ -65,7 +65,7 @@ func TestSubmitTransaction(t *testing.T) {
 
 	gw := &Gateway{
 		options: &gatewayOptions{
-			Timeout:   defaultTimeout,
+			Timeout: defaultTimeout,
 		},
 	}
 
@@ -93,7 +93,7 @@ func TestEvaluateTransaction(t *testing.T) {
 
 	gw := &Gateway{
 		options: &gatewayOptions{
-			Timeout:   defaultTimeout,
+			Timeout: defaultTimeout,
 		},
 	}
 
@@ -121,7 +121,7 @@ func TestContractEvent(t *testing.T) {
 
 	gw := &Gateway{
 		options: &gatewayOptions{
-			Timeout:   defaultTimeout,
+			Timeout: defaultTimeout,
 		},
 	}
 

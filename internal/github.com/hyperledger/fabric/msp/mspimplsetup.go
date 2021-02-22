@@ -15,8 +15,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common"
-	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -42,7 +42,7 @@ func (msp *bccspmsp) getCertifiersIdentifier(certRaw []byte) ([]byte, error) {
 	root := false
 	// Search among root certificates
 	for _, v := range msp.rootCerts {
-		if bytes.Equal(v.(*identity).cert.Raw(),cert.Raw()) {
+		if bytes.Equal(v.(*identity).cert.Raw(), cert.Raw()) {
 			found = true
 			root = true
 			break
@@ -51,7 +51,7 @@ func (msp *bccspmsp) getCertifiersIdentifier(certRaw []byte) ([]byte, error) {
 	if !found {
 		// Search among root intermediate certificates
 		for _, v := range msp.intermediateCerts {
-			if bytes.Equal(v.(*identity).cert.Raw(),cert.Raw()) {
+			if bytes.Equal(v.(*identity).cert.Raw(), cert.Raw()) {
 				found = true
 				break
 			}
@@ -477,11 +477,11 @@ func (msp *bccspmsp) setupTLSCAs(conf *m.FabricMSPConfig) error {
 		if _, err := cert.SKI(); err != nil {
 			return errors.WithMessagef(err, "CA Certificate problem with Subject Key Identifier extension, (SN: %x)", cert.SerialNumber)
 		}
-		if common.IsSM2Certificate(cert.Raw(),false){
+		if common.IsSM2Certificate(cert.Raw(), false) {
 			if err := msp.validateTLSCAIdentity(cert, sm2opts); err != nil {
 				return errors.WithMessagef(err, "CA Certificate is not valid, (SN: %s)", cert.SerialNumber)
 			}
-		}else {
+		} else {
 			if err := msp.validateTLSCAIdentity(cert, opts); err != nil {
 				return errors.WithMessagef(err, "CA Certificate is not valid, (SN: %s)", cert.SerialNumber)
 			}

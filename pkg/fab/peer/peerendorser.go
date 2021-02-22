@@ -9,13 +9,13 @@ package peer
 import (
 	reqContext "context"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/verifier"
 	common2 "github.com/hyperledger/fabric-sdk-go/pkg/common"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/gmcredentials"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/comm"
 	fab2 "github.com/hyperledger/fabric-sdk-go/pkg/fab"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
-	"github.com/tjfoc/gmtls/gmcredentials"
 	"google.golang.org/grpc/credentials"
 	"regexp"
 	"time"
@@ -76,8 +76,8 @@ func newPeerEndorser(endorseReq *peerEndorserRequest) (*peerEndorser, error) {
 
 	if endpoint.AttemptSecured(endorseReq.target, endorseReq.allowInsecure) {
 		isSM2 := false
-		for _,cert := range endorseReq.config.TLSCACertPool().GetCerts() {
-			if common2.IsSM2Certificate(cert.Raw, false){
+		for _, cert := range endorseReq.config.TLSCACertPool().GetCerts() {
+			if common2.IsSM2Certificate(cert.Raw, false) {
 				isSM2 = true
 				break
 			}
@@ -93,7 +93,7 @@ func newPeerEndorser(endorseReq *peerEndorserRequest) (*peerEndorser, error) {
 				return verifier.VerifyPeerCertificate(rawCerts, verifiedChains)
 			}
 			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-		}else {
+		} else {
 			certPool := sm2.NewCertPool()
 			if endorseReq.certificate != nil {
 				certPool.AddCert(common2.ParseX509Certificate2Sm2(endorseReq.certificate))

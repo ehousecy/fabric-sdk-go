@@ -9,7 +9,7 @@ package verifier
 
 import (
 	"crypto/x509"
-	"github.com/tjfoc/gmsm/sm2"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/common"

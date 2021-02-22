@@ -3,10 +3,6 @@ Copyright IBM Corp. All Rights Reserved.
 
 SPDX-License-Identifier: Apache-2.0
 */
-/*
-Notice: This file has been modified for Hyperledger Fabric SDK Go usage.
-Please review third_party pinning scripts and patches for more details.
-*/
 
 package sw
 
@@ -14,11 +10,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 )
 
 type pkcs8Info struct {
@@ -118,7 +115,11 @@ func privateKeyToPEM(privateKey interface{}, pwd []byte) ([]byte, error) {
 				Bytes: pkcs8Bytes,
 			},
 		), nil
-
+	case *sm2.PrivateKey:
+		if k == nil {
+			return nil, errors.New("Invalid sm2 private key. It must be different from nil.")
+		}
+		return WritePrivateKeyToPem(k, nil)
 	default:
 		return nil, errors.New("invalid key type. It must be *ecdsa.PrivateKey")
 	}
@@ -167,6 +168,8 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 	if key, err = x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key.(type) {
 		case *ecdsa.PrivateKey:
+			return
+		case *sm2.PrivateKey:
 			return
 		default:
 			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")

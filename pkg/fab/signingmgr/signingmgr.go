@@ -39,11 +39,11 @@ func (mgr *SigningManager) Sign(object []byte, key core.Key) ([]byte, error) {
 		return nil, errors.New("key (for signing) required")
 	}
 	//TODO
-	//digest, err := mgr.cryptoProvider.Hash(object, mgr.hashOpts)
-	//if err != nil {
-	//	return nil, err
-	//}
-	signature, err := mgr.cryptoProvider.Sign(key, object, mgr.signerOpts)
+	digest, err := mgr.cryptoProvider.Hash(object, mgr.hashOpts)
+	if err != nil {
+		return nil, err
+	}
+	signature, err := mgr.cryptoProvider.Sign(key, digest, mgr.signerOpts)
 	if err != nil {
 		return nil, err
 	}

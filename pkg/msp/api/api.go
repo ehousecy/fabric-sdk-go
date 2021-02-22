@@ -8,6 +8,7 @@ package api
 
 import (
 	"errors"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric-ca/sdkinternal/pkg/api"
 )
 
 var (
@@ -85,8 +86,9 @@ type EnrollmentRequest struct {
 
 // CSRInfo is Certificate Signing Request (CSR) Information
 type CSRInfo struct {
-	CN    string
-	Hosts []string
+	CN         string
+	Hosts      []string
+	KeyRequest *api.KeyRequest
 }
 
 // ReenrollmentRequest is a request to reenroll an identity.

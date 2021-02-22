@@ -3,10 +3,6 @@ Copyright IBM Corp. All Rights Reserved.
 
 SPDX-License-Identifier: Apache-2.0
 */
-/*
-Notice: This file has been modified for Hyperledger Fabric SDK Go usage.
-Please review third_party pinning scripts and patches for more details.
-*/
 
 package sw
 
@@ -16,14 +12,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 )
 
 // NewFileBasedKeyStore instantiated a file-based key store at a given position.
@@ -146,6 +142,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
 			return &ecdsaPrivateKey{k, true}, nil
+		case *sm2.PrivateKey:
+			return &gmsm2PrivateKey{key.(*sm2.PrivateKey)}, nil
 		default:
 			return nil, errors.New("secret key type not recognized")
 		}
@@ -159,6 +157,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
+		case *sm2.PublicKey:
+			return &gmsm2PublicKey{key.(*sm2.PublicKey)}, nil
 		default:
 			return nil, errors.New("public key type not recognized")
 		}
@@ -195,6 +195,21 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed storing AES key [%s]", err)
 		}
+	case *gmsm2PrivateKey:
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM2 private key [%s]", err)
+		}
+	case *gmsm2PublicKey:
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM2 public key [%s]", err)
+		}
+	case *gmsm4PrivateKey:
+		err = ks.storeKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM4 key [%s]", err)
+		}
 
 	default:
 		return fmt.Errorf("key type not reconigned [%s]", k)
@@ -228,6 +243,8 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 		switch kk := key.(type) {
 		case *ecdsa.PrivateKey:
 			k = &ecdsaPrivateKey{kk, true}
+		case *sm2.PrivateKey:
+			k = &gmsm2PrivateKey{kk}
 		default:
 			continue
 		}

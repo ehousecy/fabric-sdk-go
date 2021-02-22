@@ -17,6 +17,7 @@ package msp
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric-ca/sdkinternal/pkg/api"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 
@@ -677,6 +678,10 @@ func createCSRInfo(csr *CSRInfo) *mspapi.CSRInfo {
 	return &mspapi.CSRInfo{
 		CN:    csr.CN,
 		Hosts: csr.Hosts,
+		KeyRequest: &api.KeyRequest{
+			Algo: csr.KeyRequest.Algo,
+			Size: csr.KeyRequest.Size,
+		},
 	}
 }
 

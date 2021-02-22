@@ -17,32 +17,16 @@ package sw
 
 import (
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
-	"github.com/tjfoc/gmsm/sm4"
 )
 
 // AESCBCPKCS7Encrypt combines CBC encryption and PKCS7 padding
 func SM4Encrypt(key, src []byte) ([]byte, error) {
-	// // First pad
-	// tmp := pkcs7Padding(src)
-
-	// // Then encrypt
-	// return aesCBCEncrypt(key, tmp)
-	dst := make([]byte, len(src))
-	sm4.EncryptBlock(key, dst, src)
-	return dst, nil
+	panic("Not Implements")
 }
 
 // AESCBCPKCS7Decrypt combines CBC decryption and PKCS7 unpadding
 func SM4Decrypt(key, src []byte) ([]byte, error) {
-	// First decrypt
-	// pt, err := aesCBCDecrypt(key, src)
-	// if err == nil {
-	// 	return pkcs7UnPadding(pt)
-	// }
-
-	dst := make([]byte, len(src))
-	sm4.DecryptBlock(key, dst, src)
-	return dst, nil
+	panic("Not Implements")
 }
 
 type gmsm4Encryptor struct{}
@@ -51,12 +35,6 @@ type gmsm4Encryptor struct{}
 func (*gmsm4Encryptor) Encrypt(k bccsp.Key, plaintext []byte, opts bccsp.EncrypterOpts) (ciphertext []byte, err error) {
 
 	return SM4Encrypt(k.(*gmsm4PrivateKey).privKey, plaintext)
-	//return AESCBCPKCS7Encrypt(k.(*sm4PrivateKey).privKey, plaintext)
-
-	// key := k.(*gmsm4PrivateKey).privKey
-	// var en = make([]byte, 16)
-	// sms4(plaintext, 16, key, en, 1)
-	// return en, nil
 }
 
 type gmsm4Decryptor struct{}
@@ -65,8 +43,4 @@ type gmsm4Decryptor struct{}
 func (*gmsm4Decryptor) Decrypt(k bccsp.Key, ciphertext []byte, opts bccsp.DecrypterOpts) (plaintext []byte, err error) {
 
 	return SM4Decrypt(k.(*gmsm4PrivateKey).privKey, ciphertext)
-	// var dc = make([]byte, 16)
-	// key := k.(*gmsm4PrivateKey).privKey
-	// sms4(ciphertext, 16, key, dc, 0)
-	// return dc, nil
 }

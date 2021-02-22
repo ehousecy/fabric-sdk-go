@@ -177,7 +177,7 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 		mspIdentityLogger.Debugf("Verify: sig = %s", hex.Dump(sig))
 	}
 
-	valid, err := id.msp.bccsp.Verify(id.pk, sig, msg, nil)
+	valid, err := id.msp.bccsp.Verify(id.pk, sig, digest, nil)
 	if err != nil {
 		return errors.WithMessage(err, "could not determine the validity of the signature")
 	} else if !valid {
