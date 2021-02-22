@@ -13,6 +13,7 @@
 
 #### 待办事项
 - [ ] fabric-ca国密支持
+  - [ ]fabric-ca tls 国密支持
 
 #### 已做修改
 
@@ -20,11 +21,11 @@
 - [x] msp修改
   - [x] 对证书接口做了抽象
   - [x] 提供x509.Certificate和sm2.Certificate互转的方法
-  - [x] SigningManager 签名和identity验签的地方，哈希都注释掉了，由signer/verifier自行哈希（此处是由于同济的国密库sm2sign和sm2Verify方法默认做了哈希）  
 - [x] tls部分增加对国密tls的支持
 - [x] 其他适配
   - [x] ImportBCCSPKeyFromPEMBytes增加sm2.privateKey的支持
 - [x] sanitizeCert方法修改  
+- [x] fabric-ca 国密支持(国密tls还未支持)
 
 #### 项目测试
 
@@ -32,9 +33,9 @@
 # 1使用fabric-samples/fabcar进行测试
 # 1.1 修改go.mod
 # 1.1.1 首先通过命令获取fabric-sdk-go版本号
-go get github.com/ehousecy/fabric-sdk-go@develop
+go get github.com/ehousecy/fabric-sdk-go@ccs-gm
 # 1.1.2 go.mod添加replace
-replace github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go v1.0.0-rc1.0.20210201104547-9895c8ce0d04
+replace github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go v1.0.0-rc1.0.20210222094557-c9106585e67f
 # 2 下载依赖
 go mod vendor
 # 3 运行项目
