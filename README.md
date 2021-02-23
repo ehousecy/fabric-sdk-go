@@ -1,4 +1,4 @@
-# Hyperledger Fabric 国密版
+# Fabric-sdk-go 国密版
 >> 这是基于v1.0.0-rc1修改的支持国密算法的go-sdk
 
 ## 修改思路
