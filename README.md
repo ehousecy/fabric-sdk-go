@@ -1,8 +1,8 @@
 # Hyperledger Fabric 国密版
 >> 这是基于v1.0.0-rc1修改的支持国密算法的go-sdk
 
-###思路修改
-- [x] bccsp新增SMX密钥支持
+## 修改思路
+- [x] bccsp新增国密支持
 - [x] msp修改
   - [x] 对证书接口做了抽象
   - [x] 提供x509.Certificate和sm2.Certificate互转的方法
@@ -13,7 +13,7 @@
 - [x] fabric-ca 国密支持(国密tls还未支持)
 
 ## 待办事项
-- [ ]fabric-ca tls 国密支持
+- [ ] fabric-ca tls 国密支持
 
 ## 项目使用
 
