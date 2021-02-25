@@ -15,7 +15,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 )
 
 func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
@@ -23,25 +24,25 @@ func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
 		return nil, errors.New("invalid ecdsa private key. It must be different from nil")
 	}
 
-	return x509GM.MarshalECPrivateKey(privateKey)
+	return x509.MarshalECPrivateKey(privateKey)
 }
 
 func derToPrivateKey(der []byte) (key interface{}, err error) {
 
-	if key, err = x509GM.ParsePKCS1PrivateKey(der); err == nil {
+	if key, err = x509.ParsePKCS1PrivateKey(der); err == nil {
 		return key, nil
 	}
 
-	if key, err = x509GM.ParsePKCS8PrivateKey(der); err == nil {
+	if key, err = x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key.(type) {
-		case *ecdsa.PrivateKey:
+		case *ecdsa.PrivateKey,*sm2.PrivateKey:
 			return
 		default:
 			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
 		}
 	}
 
-	if key, err = x509GM.ParseECPrivateKey(der); err == nil {
+	if key, err = x509.ParseECPrivateKey(der); err == nil {
 		return
 	}
 
@@ -56,12 +57,12 @@ func PEMToPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
 
 	// TODO: derive from header the type of the key
 
-	if x509GM.IsEncryptedPEMBlock(block) {
+	if x509.IsEncryptedPEMBlock(block) {
 		if len(pwd) == 0 {
 			return nil, errors.New("encrypted Key. Need a password")
 		}
 
-		decrypted, err := x509GM.DecryptPEMBlock(block, pwd)
+		decrypted, err := x509.DecryptPEMBlock(block, pwd)
 		if err != nil {
 			return nil, fmt.Errorf("failed PEM decryption: [%s]", err)
 		}
