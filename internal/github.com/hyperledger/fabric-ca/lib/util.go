@@ -15,7 +15,11 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
-	"net/http"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/Hyperledger-TWGC/net-go-gm/http"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/sw"
 
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric-ca/sdkinternal/pkg/util"
 	"github.com/pkg/errors"
@@ -46,11 +50,11 @@ func BytesToX509Cert(bytes []byte) (*x509.Certificate, error) {
 	if dcert != nil {
 		bytes = dcert.Bytes
 	}
-	cert, err := x509.ParseCertificate(bytes)
+	cert, err := x509GM.ParseCertificate(bytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "Buffer was neither PEM nor DER encoding")
 	}
-	return cert, err
+	return sw.ParseSm2Certificate2X509(cert), err
 }
 
 func addQueryParm(req *http.Request, name, value string) {
@@ -64,4 +68,28 @@ func addQueryParm(req *http.Request, name, value string) {
 type CertificateDecoder struct {
 	certIDCount map[string]int
 	storePath   string
+}
+
+func SetTLSConfig(c *gmtls.Config) {
+	isGM := false
+	if len(c.Certificates) > 0 {
+		_, ok := c.Certificates[0].PrivateKey.(*sm2.PrivateKey)
+		if ok {
+			isGM = true
+		}
+	} else {
+		certs := c.RootCAs.GetCerts()
+		if len(certs) > 0 {
+			if _, ok := certs[0].PublicKey.(*sm2.PublicKey); ok {
+				isGM = true
+			}
+		}
+	}
+	if isGM {
+		c.GMSupport = &gmtls.GMSupport{}
+		c.MinVersion = gmtls.VersionGMSSL
+	} else {
+		c.GMSupport = nil
+		c.MinVersion = gmtls.VersionTLS12
+	}
 }

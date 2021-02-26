@@ -23,6 +23,9 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/sw"
 	"time"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
@@ -41,6 +44,8 @@ var DefaultCipherSuites = []uint16{
 	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 	tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	gmtls.GMTLS_SM2_WITH_SM4_SM3,
+	gmtls.GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 }
 
 // ClientTLSConfig defines the key material for a TLS client
@@ -58,8 +63,8 @@ type KeyCertFiles struct {
 }
 
 // GetClientTLSConfig creates a tls.Config object from certs and roots
-func GetClientTLSConfig(cfg *ClientTLSConfig, csp core.CryptoSuite) (*tls.Config, error) {
-	var certs []tls.Certificate
+func GetClientTLSConfig(cfg *ClientTLSConfig, csp core.CryptoSuite) (*gmtls.Config, error) {
+	var certs []gmtls.Certificate
 
 	if csp == nil {
 		csp = factory.GetDefault()
@@ -71,40 +76,32 @@ func GetClientTLSConfig(cfg *ClientTLSConfig, csp core.CryptoSuite) (*tls.Config
 			return nil, err
 		}
 
-		clientCert, err := util.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile, csp)
+		_, clientCert, err := util.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile, csp)
 		if err != nil {
 			return nil, err
 		}
 
-		certs = append(certs, *clientCert)
+		certs = append(certs, *TransformTLSCertificate(clientCert))
 	} else {
 		log.Debug("Client TLS certificate and/or key file not provided")
 	}
-	rootCAPool := cfg.TlsCertPool
-	if rootCAPool == nil {
-		rootCAPool, err := x509.SystemCertPool()
-		if err != nil {
-			log.Debugf("Failed to load system cert pool, switching to empty cert pool ")
-			rootCAPool = x509.NewCertPool()
-		}
+	rootCAPool := x509GM.NewCertPool()
 
-		if len(cfg.CertFiles) == 0 {
-			return nil, errors.New("No trusted root certificates for TLS were provided")
-		}
+	if len(cfg.CertFiles) == 0 {
+		return nil, errors.New("No trusted root certificates for TLS were provided")
+	}
 
-		for _, cacert := range cfg.CertFiles {
-			ok := rootCAPool.AppendCertsFromPEM(cacert)
-			if !ok {
-				return nil, errors.New("Failed to process certificate")
-			}
+	for _, cacert := range cfg.CertFiles {
+		ok := rootCAPool.AppendCertsFromPEM(cacert)
+		if !ok {
+			return nil, errors.New("Failed to process certificate")
 		}
 	}
 
-	config := &tls.Config{
+	config := &gmtls.Config{
 		Certificates: certs,
 		RootCAs:      rootCAPool,
 	}
-
 	return config, nil
 }
 
@@ -129,4 +126,20 @@ func checkCertDates(certPEM []byte) error {
 	}
 
 	return nil
+}
+
+func TransformTLSCertificate(cert *tls.Certificate) *gmtls.Certificate {
+	var leaf *x509GM.Certificate
+
+	if cert.Leaf != nil {
+		leaf = sw.ParseX509Certificate2Sm2(cert.Leaf)
+	}
+
+	return &gmtls.Certificate{
+		Certificate:                 cert.Certificate,
+		PrivateKey:                  cert.PrivateKey,
+		OCSPStaple:                  cert.OCSPStaple,
+		SignedCertificateTimestamps: cert.SignedCertificateTimestamps,
+		Leaf:                        leaf,
+	}
 }

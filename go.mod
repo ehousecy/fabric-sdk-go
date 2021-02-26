@@ -4,10 +4,11 @@
 
 module github.com/hyperledger/fabric-sdk-go
 
-replace github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm v0.1.2-0.20210222080840-906b77c76677
+replace github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm v0.1.2-0.20210226013248-cc995c360aed
 
 require (
 	github.com/Hyperledger-TWGC/ccs-gm v0.1.2-0.20210202011810-d006f903c43e
+	github.com/Hyperledger-TWGC/net-go-gm v0.0.0-20200921114008-9f44067b1d7e
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/cloudflare/cfssl v1.4.1
@@ -32,7 +33,7 @@ require (
 	github.com/spf13/viper v1.1.1
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.3.0
 )

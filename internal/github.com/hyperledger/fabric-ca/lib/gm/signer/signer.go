@@ -38,7 +38,6 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 )
 
-// add by thoughtwork's matrix
 func OverrideHosts(template *x509GM.Certificate, hosts []string) {
 	if hosts != nil {
 		template.IPAddresses = []net.IP{}

@@ -14,10 +14,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Hyperledger-TWGC/net-go-gm/http"
 	gmsigner "github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric-ca/lib/gm/signer"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -150,6 +150,7 @@ func (c *Client) initHTTPClient(serverName string) error {
 		tlsConfig.CipherSuites = tls.DefaultCipherSuites
 		//set the host name override
 		tlsConfig.ServerName = serverName
+		SetTLSConfig(tlsConfig)
 
 		tr.TLSClientConfig = tlsConfig
 	}
