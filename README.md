@@ -10,10 +10,8 @@
 - [x] 其他适配
   - [x] ImportBCCSPKeyFromPEMBytes增加sm2.privateKey的支持
 - [x] sanitizeCert方法修改  
-- [x] fabric-ca 国密支持(国密tls还未支持)
+- [x] fabric-ca 国密支持
 
-## 待办事项
-- [ ] fabric-ca tls 国密支持
 
 ## 项目使用
 
