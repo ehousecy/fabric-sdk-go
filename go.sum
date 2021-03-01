@@ -30,8 +30,6 @@ github.com/daaku/go.zipexe v1.0.0/go.mod h1:z8IiR6TsVLEYKwXAoE/I+8ys/sDkgTzSL0CL
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ehousecy/ccs-gm v0.1.2-0.20210222080840-906b77c76677 h1:TKStMF9tjAlaltgdrIkg7bF+E9TVdvFvBtgSTm4gieQ=
-github.com/ehousecy/ccs-gm v0.1.2-0.20210222080840-906b77c76677/go.mod h1:NYt3Izjky1wLk/1peAiE6N8dSlvrPhtk8HiNCqzIRPU=
 github.com/ehousecy/ccs-gm v0.1.2-0.20210226013248-cc995c360aed h1:wLJxLr6sPiceZ6d3G1H2KUOmIk5yhi1ylijlgyAHFBc=
 github.com/ehousecy/ccs-gm v0.1.2-0.20210226013248-cc995c360aed/go.mod h1:NYt3Izjky1wLk/1peAiE6N8dSlvrPhtk8HiNCqzIRPU=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
